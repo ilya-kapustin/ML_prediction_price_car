@@ -11,3 +11,5 @@ numpy
 pandas
 scikit-learn
 joblib
+Flask-WTF
+python-dotenv

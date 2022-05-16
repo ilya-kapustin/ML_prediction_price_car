@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+   <body>
+
+      <h3>Cars</h3>
+      <hr/>
+
+      <h3>Легенда</h3>
+      <p>Если хотите добавить данные в БД то выберите все пункты меню и оставьте радио баттон no_fit</p>
+      <p>Если хотите добавить данные в БД и обучить модель на этих данных то дополнительно выберите fit</p>
+      <p>Если хотите получить прогноз то не заполняйте price и выберите версию модели</p>
+
+      <h3>Тренировка модели и прогноз</h3>
+      <form action = "/submit" method = "post">
+         {{ form.csrf_token }}
+
+         {{ form.year.label }}<br> {{ form.year() }} <br><br>
+
+         {{ form.transmission.label }} <br>{{ form.transmission() }}<br><br>
+
+         {{ form.mileage.label }}<br> {{ form.mileage() }}<br><br>
+
+         {{ form.fuelType.label }} <br>{{ form.fuelType() }}<br><br>
+
+         {{ form.engineSize.label }} <br>{{ form.engineSize() }}<br><br>
+
+         {{ form.car.label }} <br>{{ form.car() }}<br><br>
+
+         {{ form.price.label }}<br> {{ form.price() }}<br><br>
+
+         <label>Построить модель</label><br>
+         {{ form.fit() }}<br>
+
+         <p>Выберите модель прогноза</p>
+         <select name="model" id="model">
+         {% for ml in model_db %}
+              <option value={{ ml.id }}>Идентификатор модели {{ ml.id }}</option>
+         {% endfor %}
+         </select> <br><br>
+
+         {{ form.submit() }}<br>
+      </form>
+
+      <h3>Результат</h3>
+      {% with messages = get_flashed_messages() %}
+         {% if messages %}
+            <ul class=flashes>
+               {% for message in messages %}
+                  <li>{{ message }}</li>
+               {% endfor %}
+            </ul>
+         {% endif %}
+      {% endwith %}
+
+   </body>
+</html>
