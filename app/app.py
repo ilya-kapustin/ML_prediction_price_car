@@ -12,6 +12,7 @@ from fitting import save_model, fit, predict_p, get_data, transform, pd, scale_d
 
 from dotenv import load_dotenv
 from os import getenv
+from loguru import logger
 
 
 load_dotenv()
@@ -58,7 +59,7 @@ class ModelDB(db.Model):
 class FormForPredict(FlaskForm):
     year = IntegerField('year', validators=[NumberRange(min=1970, max=2022)])
     transmission = SelectField('transmission', choices=[('Manual', 'Manual'), ('Automatic', 'Automatic')])
-    mileage = IntegerField('mileage', validators=[NumberRange(min=1, max=100000000)])
+    mileage = IntegerField('mileage', validators=[NumberRange(min=1, max=100_000_000)])
     fuelType = SelectField('fuelType', choices=[('Petrol', 'Petrol'), ('Diesel', 'Diesel')])
     engineSize = IntegerField('engineSize', validators=[NumberRange(min=0, max=7)])
     car = SelectField('car', choices=[
@@ -75,7 +76,7 @@ class FormForPredict(FlaskForm):
         ('vauxhall', 'vauxhall'),
         ('vw', 'vw')
     ])
-    price = IntegerField('price', validators=[NumberRange(min=10, max=100000000)])
+    price = IntegerField('price', validators=[NumberRange(min=10, max=100_000_000)])
 
     fit = RadioField('fit', choices=[('fit', 'fit'), ('no_fit', 'no_fit')])
 
@@ -84,22 +85,27 @@ class FormForPredict(FlaskForm):
 
 # Actions
 def add_order(form, db):
+    """  Добавляем новую строку в базу данных
+    """
     car = Cars(*[col.data for col in form if col.name not in ['fit', 'submit', 'Add/Fit', 'csrf_token']])
     db.session.add(car)
     db.session.commit()
 
 
 def fit_func(db):
+    """  Обучаем модель с учетом новых данных
+    """
     data = get_data('cars', db)
-    data = transform(data)
-    model = fit(scale_data(data[0]), data[1])
+    X, Y = transform(data)
+    model = fit(scale_data(X), Y)
     save_model(model[0], str(int(db.session.query(func.max(ModelDB.id)).scalar()) + 1))
-    db.session.add(ModelDB(name=str(model[0]), mae=model[1]))
+    db.session.add(ModelDB(name=str( { 'model': repr(model[0]), 'coef': str(model[0].coef_) }), mae=model[1]))
     db.session.commit()
 
 
 def predict_func(form):
-
+    """  Получаем прогноз на основе выбранной модели
+    """
     data = pd.DataFrame({
         'year': [int(form.year.data)],
         'transmission': [transmission_dict[form.transmission.data]],
@@ -112,21 +118,24 @@ def predict_func(form):
 
 
 def initial_db(db):
+    """ Инициализация базы данных
+    """
     dbstatus = False
     while dbstatus == False:
         try:
             db.create_all()
         except:
             time.sleep(2)
+            logger.error(f'DataBase is not start yet')
         else:
             dbstatus = True
     load_first_dataset(table='cars', db_conn=db, file_path='./data/cars.csv')
 
     data = get_data('cars', db)
-    data = transform(data)
-    model = fit(scale_data(data[0]), data[1])
+    X, Y = transform(data)
+    model = fit(scale_data(X), Y)
     save_model(model[0], '1')
-    db.session.add(ModelDB(name=str(model[0]), mae=model[1]))
+    db.session.add(ModelDB(name=str( { 'model': repr(model[0]), 'coef': str(model[0].coef_) }), mae=model[1]))
     db.session.commit()
 
 
@@ -137,6 +146,8 @@ def show_all():
 
 @app.route('/submit', methods=['GET', 'POST'])
 def submit():
+    """  Основная форма взаимодействия с базой
+    """
     form = FormForPredict()
 
     if request.method == 'POST' and form.price.data:
@@ -167,5 +178,7 @@ def submit():
 
 
 if __name__ == '__main__':
+    """ Старт приложения
+    """
     initial_db(db)
     app.run(debug=True, host='0.0.0.0')

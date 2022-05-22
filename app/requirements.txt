@@ -13,3 +13,4 @@ scikit-learn
 joblib
 Flask-WTF
 python-dotenv
+loguru

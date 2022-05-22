@@ -8,12 +8,17 @@ from sklearn.svm import SVR
 from joblib import dump, load
 import operator
 from mapping import transmission_dict, fuelType_dict, car_dict
+import config
 
 def get_data(table, db):
+    """  Выгружаем датасет для обучения
+    """
     return pd.read_sql(f'SELECT * FROM {table}', con=db.engine)
 
 
 def transform(data):
+    """ Трансформация данных
+    """
     data['transmission'] = data['transmission'].replace(transmission_dict)
     data['fuelType'] = data['fuelType'].replace(fuelType_dict)
     data['car'] = data['car'].replace(car_dict)
@@ -25,12 +30,15 @@ def transform(data):
 
 
 def scale_data(data):
+    """ Нормализация данных
+    """
     scaler = MinMaxScaler(feature_range=(0, 1))
     return scaler.fit_transform(data)
 
 
 def fit(X, Y):
-
+    """ Обучение модели. Обучаем несколько моделей и выбираем самую лучшую.
+    """
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.25)
 
     models = {
@@ -50,9 +58,13 @@ def fit(X, Y):
 
 
 def save_model(model, path):
-    dump(model, f'./models/{path}.joblib')
+    """ Сохраняем модель
+    """
+    dump(model, f'{config.PATH_MODELS}/{path}.joblib')
 
 
 def predict_p(data, path):
-    model = load(f'./models/{path}.joblib')
+    """ Прогноз по сохраненной модели
+    """
+    model = load(f'{config.PATH_MODELS}/{path}.joblib')
     return model.predict(data)
